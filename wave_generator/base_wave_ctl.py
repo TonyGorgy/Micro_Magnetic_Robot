@@ -1,6 +1,7 @@
 import serial
 import time
 import math
+import sys
 
 class FY8300:
     """
@@ -9,7 +10,12 @@ class FY8300:
     """
 
     def __init__(self, port, baud=115200, timeout=0.1):
-        self.ser = serial.Serial(port, baud, timeout=timeout)
+        try:
+            self.ser = serial.Serial(port, baud, timeout=timeout)
+        except serial.SerialException as e:
+            print(f"[ERROR] 串口无法打开: \n {e}")
+            # 你可以选择退出或重试
+            sys.exit()
 
     def close(self):
         self.ser.close()
@@ -20,7 +26,7 @@ class FY8300:
     def send(self, cmd: str):
         """Send one command (LF terminated) and read one line back"""
         self.ser.write((cmd + "\n").encode())
-        time.sleep(0.03)
+        time.sleep(0.2)
         resp = self.ser.readline().decode(errors="ignore").strip()
         return resp
 
@@ -141,14 +147,82 @@ class FY8300:
             arr.append(val)
         self.upload_arb_array(ch, arr)
 
-dev = FY8300("/dev/tty.usbserial-1130")
 
-# >>> main function test
-dev.set_waveform(1, 0)     # 正弦
-dev.set_freq(1, 1000)      # 1 kHz
-dev.set_amplitude(1, 1.000) # 幅度
-dev.set_phase(1, 45.0)     # 相位
-dev.output_on(1)
-time.sleep(1)
-dev.output_off(1)
-# <<< end test
+# DEV LOG
+# dev = FY8300("/dev/tty.usbserial-1130")
+
+# # 读取频率波特率偏低
+# # 需要手动延迟防止寄存器数据写入丢失（在该条命令之后）
+# # 或者减少写入指令（不要连续多种参数一起修改）
+
+# # >>> main function test
+# CH = 1
+# dev.set_waveform(CH, 0)     # 正弦
+# time.sleep(0.1)
+# dev.set_freq(CH, 0.00002)      # 1 kHz
+# time.sleep(0.1)
+# dev.set_amplitude(CH, 3.000) # 幅度
+# time.sleep(0.1)
+# dev.set_phase(CH, 0.0)     # 相位
+# time.sleep(0.1)
+# dev.output_on(CH)
+# # >>> continuious test
+# # for i in range(1,51):
+# #     amp = 1 + 0.02 * i
+# #     dev.set_amplitude(1, amp) # 幅度
+#     # time.sleep(0.01)
+# time.sleep(.5)
+
+
+# CH = 2
+# time.sleep(0.1)
+# dev.set_waveform(CH, 1)     # 正弦
+# time.sleep(0.1)
+# dev.set_freq(CH, 0.000002)      # 1 kHz
+# time.sleep(0.1)
+# dev.set_amplitude(CH, 4) # 幅度
+# time.sleep(0.1)
+# dev.set_phase(CH, 35.0)     # 相位
+# time.sleep(0.1)
+# dev.output_on(CH)
+# # >>> continuious test
+# # for i in range(1,51):
+# #     amp = 1 + 0.02 * i
+# #     dev.set_amplitude(1, amp) # 幅度
+#     # time.sleep(0.01)
+# time.sleep(.5)
+
+# CH = 3
+# time.sleep(0.1)
+# dev.set_waveform(CH, 0)     # 正弦
+# time.sleep(0.1)
+# dev.set_freq(CH, 2)      # 1 kHz
+# time.sleep(0.1)
+# dev.set_amplitude(CH, 4.000) # 幅度
+# time.sleep(0.2)             # 0.2 才不会被忽略，0.1 都会
+# dev.set_phase(CH, 40.0)     # 相位
+# time.sleep(0.1)
+# dev.output_on(CH)
+# # >>> continuious test
+# # for i in range(1,51):
+# #     amp = 1 + 0.02 * i
+# #     dev.set_amplitude(1, amp) # 幅度
+#     # time.sleep(0.01)
+    
+# # 一个例子
+# # 这里不暂停的话 2 就又不能关闭了
+# # 而且如果sleep 0.1 也不能控制，应该是控制模式切换会更耗时
+# # 谁夹在中间谁的指令会更容易被忽略
+
+# time.sleep(1)
+
+# dev.output_off(1)
+# dev.output_off(3)
+# time.sleep(0.1)
+
+# dev.output_off(2)
+# time.sleep(0.1)
+
+# dev.output_off(3)
+# time.sleep(0.1)
+# # <<< end test
